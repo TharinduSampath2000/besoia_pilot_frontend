@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color: theme('colors.ink.DEFAULT');
+    background: theme('colors.page');
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Removes the double-tap-to-zoom delay on touch screens. */
+  a, button, [role="radio"], [role="tab"], label {
+    touch-action: manipulation;
+  }
+
+  body {
+    @apply min-w-[320px] font-sans antialiased;
+    background: theme('colors.page');
+  }
+
+  h1, h2, h3 {
+    @apply font-display tracking-tight;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-4 ring-accent/25;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-[15px] font-semibold disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-ink text-cream shadow-[0_6px_16px_-6px_rgba(27,38,44,0.55)] hover:bg-ink/90;
+  }
+  .btn-accent {
+    @apply bg-accent text-cream shadow-[0_6px_16px_-6px_rgba(27,38,44,0.6)] hover:bg-accent-dark;
+  }
+  .btn-secondary {
+    @apply border border-ink/15 bg-cream/70 text-ink hover:border-ink/30 hover:bg-cream;
+  }
+  .btn-ghost {
+    @apply px-3 py-2 text-ink-soft hover:bg-ink/5 hover:text-ink;
+  }
+  .card {
+    @apply rounded-3xl border border-ink/10 bg-cream/75 shadow-[0_1px_2px_rgba(27,38,44,0.04),0_12px_32px_-16px_rgba(27,38,44,0.18)];
+  }
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-accent;
+  }
+  .input {
+    @apply w-full rounded-xl border border-ink/20 bg-cream px-4 py-3.5 text-base text-ink placeholder:text-ink/40 focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15;
+  }
+}
