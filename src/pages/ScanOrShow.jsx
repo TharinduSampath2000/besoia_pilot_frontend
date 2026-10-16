@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom';
 import QRDisplay from '../components/QRDisplay.jsx';
 import MatchResultModal from '../components/MatchResultModal.jsx';
 import { Alert, Avatar, Button, Spinner } from '../components/ui.jsx';
-import { fetchPendingMatch, logQrGenerated, scanMatch } from '../services/api.js';
+import { fetchQrToken, fetchRecentMatches, logQrGenerated, scanMatch } from '../services/api.js';
 import { friendToMatch, matchToFriend, useUser } from '../context/UserContext.jsx';
 
 const POLL_INTERVAL = 2500;
-// The QR decoder is most of the bundle, so load it only when someone opens the scanner.
+const QR_RETRY_DELAY = 3000;
 const CameraScanner = lazy(() => import('../components/CameraScanner.jsx'));
 
 function timeAgo(isoDate) {
@@ -36,8 +36,18 @@ export default function ScanOrShow() {
   const [result, setResult] = useState(null);
   const knownMatchIds = useRef(new Set());
   const qrLogged = useRef(false);
+  const [qrToken, setQrToken] = useState(null);
+  const [qrError, setQrError] = useState(false);
 
-  knownMatchIds.current = new Set(friends.map((friend) => friend.matchId).filter(Boolean));
+  const friendsRef = useRef(friends);
+  friendsRef.current = friends;
+  friends.forEach((friend) => friend.matchId && knownMatchIds.current.add(friend.matchId));
+
+  const isNewMatch = (match) => {
+    if (knownMatchIds.current.has(match.matchId)) return false;
+    const existing = friendsRef.current.find((friend) => friend.id === match.friend?.id);
+    return !existing?.matchedAt || new Date(match.createdAt) > new Date(existing.matchedAt);
+  };
 
   const showMatch = useCallback((match) => {
     knownMatchIds.current.add(match.matchId);
@@ -45,25 +55,54 @@ export default function ScanOrShow() {
     setResult({ match, celebrate: true });
   }, [addFriend]);
 
-  // User A never scans: poll while their code is on screen and surface any match we haven't shown yet.
+  useEffect(() => {
+    if (tab !== 'show' || qrLogged.current) return;
+    qrLogged.current = true;
+    logQrGenerated().catch(() => {});
+  }, [tab]);
+
   useEffect(() => {
     if (tab !== 'show') return undefined;
-    if (!qrLogged.current) {
-      qrLogged.current = true;
-      logQrGenerated().catch(() => {});
-    }
+    let active = true;
+    let timer;
+    const refresh = async () => {
+      try {
+        const { token, refreshIn } = await fetchQrToken();
+        if (!active) return;
+        setQrToken(token);
+        setQrError(false);
+        timer = setTimeout(refresh, refreshIn * 1000);
+      } catch {
+        if (!active) return;
+        setQrError(true);
+        timer = setTimeout(refresh, QR_RETRY_DELAY);
+      }
+    };
+    refresh();
+    return () => { active = false; clearTimeout(timer); };
+  }, [tab]);
+
+  // user A never scans, so poll for new matches
+  useEffect(() => {
     let active = true;
     const check = async () => {
       if (document.hidden) return;
       try {
-        const { match } = await fetchPendingMatch();
-        if (active && match && !knownMatchIds.current.has(match.matchId)) showMatch(match);
+        const { matches } = await fetchRecentMatches();
+        if (!active) return;
+        const unseen = matches.filter(isNewMatch);
+        if (!unseen.length) return;
+        [...unseen].reverse().forEach((match) => {
+          knownMatchIds.current.add(match.matchId);
+          addFriend(matchToFriend(match));
+        });
+        setResult({ match: unseen[0], celebrate: true });
       } catch {}
     };
     check();
     const timer = setInterval(check, POLL_INTERVAL);
     return () => { active = false; clearInterval(timer); };
-  }, [tab, showMatch]);
+  }, [addFriend]);
 
   const handleScan = useCallback(async (scannedId) => {
     setError('');
@@ -108,9 +147,10 @@ export default function ScanOrShow() {
       <ModeSwitch tab={tab} onChange={switchTab} />
 
       {tab === 'show' && <div className="mt-8 text-center" key="show">
-        <QRDisplay sessionId={user?.sessionId} name={user?.name} />
+        <QRDisplay value={qrToken} name={user?.name} />
         <p className="mt-5 font-display text-xl font-semibold">{user?.name}</p>
-        <p className="mx-auto mt-1 max-w-xs text-sm leading-6 text-ink-soft">Hold your phone up so they can scan this.</p>
+        <p className="mx-auto mt-1 max-w-xs text-sm leading-6 text-ink-soft">Hold your phone up so they can scan this. It refreshes every 30 seconds, so old photos of it stop working.</p>
+        {qrError && <p className="mx-auto mt-2 max-w-xs text-xs text-danger">Can't refresh your code. Check your connection; retrying…</p>}
         <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink/5 px-4 py-2 text-xs font-semibold text-ink/70" role="status">
           <span className="h-2 w-2 rounded-full bg-accent" />
           Waiting for them to scan…
