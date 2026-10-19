@@ -16,7 +16,7 @@ The backend needs to be running. With `dev:mobile`, open the network URL on the 
 - `/` name
 - `/quiz` 7 questions
 - `/match` show QR / scan, connections list
-- `/report` emails the pilot data to `REPORT_EMAIL`, no sign-in
+- `/reports` downloads the pilot data as an Excel file, behind a passcode remembered per device
 
 ## Notes
 
