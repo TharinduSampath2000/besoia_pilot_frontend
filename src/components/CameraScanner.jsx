@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import QrScanner from 'qr-scanner';
 import { Spinner } from './ui.jsx';
 
 function Tab({ active, onClick, children }) {
@@ -13,49 +13,39 @@ export default function CameraScanner({ onScan, onError }) {
   const [fileState, setFileState] = useState({ name: '', scanning: false });
   const [isDragging, setIsDragging] = useState(false);
   // Keep the latest callbacks without restarting the camera on every parent render.
+  const videoRef = useRef(null);
   const callbacks = useRef({ onScan, onError });
   callbacks.current = { onScan, onError };
 
   useEffect(() => {
     if (mode !== 'camera') return undefined;
     setCameraState('starting');
-    const scanner = new Html5Qrcode('besoia-qr-reader', { verbose: false });
-    let disposed = false;
-    let scannerStarted = false;
+    let done = false;
+    const scanner = new QrScanner(videoRef.current, (result) => {
+      if (done) return;
+      done = true;
+      scanner.stop();
+      navigator.vibrate?.(60);
+      callbacks.current.onScan(result.data);
+    }, {
+      preferredCamera: 'environment',
+      maxScansPerSecond: 15,
+      highlightScanRegion: true,
+      returnDetailedScanResult: true
+    });
 
-    const stopScanner = async () => {
-      if (!scannerStarted) return;
-      scannerStarted = false;
-      try {
-        await scanner.stop();
-      } catch {}
-    };
-
-    scanner.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: (width, height) => { const size = Math.floor(Math.min(width, height) * 0.7); return { width: size, height: size }; } },
-      async (decodedText) => {
-        await stopScanner();
-        if (!disposed) {
-          navigator.vibrate?.(60);
-          callbacks.current.onScan(decodedText);
-        }
-      },
-      () => {}
-    ).then(() => {
-      scannerStarted = true;
-      if (disposed) stopScanner();
-      else setCameraState('live');
+    scanner.start().then(() => {
+      if (!done) setCameraState('live');
     }).catch((error) => {
-      if (disposed) return;
+      if (done) return;
       setCameraState('error');
       callbacks.current.onError(error?.name === 'NotAllowedError' || String(error).includes('Permission')
         ? 'Camera access was blocked. Allow it in your browser settings, or upload a screenshot of their code instead.'
         : "The camera couldn't start. You can upload a screenshot of their code instead.");
     });
     return () => {
-      disposed = true;
-      stopScanner();
+      done = true;
+      scanner.destroy();
     };
   }, [mode]);
 
@@ -63,10 +53,8 @@ export default function CameraScanner({ onScan, onError }) {
     if (!file) return;
     setFileState({ name: file.name, scanning: true });
     try {
-      const scanner = new Html5Qrcode('besoia-file-reader', { verbose: false });
-      const decodedText = await scanner.scanFile(file, false);
-      try { scanner.clear(); } catch {}
-      callbacks.current.onScan(decodedText);
+      const result = await QrScanner.scanImage(file, { returnDetailedScanResult: true });
+      callbacks.current.onScan(result.data);
     } catch {
       callbacks.current.onError('No QR code found in that image. Try a clearer screenshot of their code.');
     } finally {
@@ -88,7 +76,7 @@ export default function CameraScanner({ onScan, onError }) {
 
     {mode === 'camera'
       ? <div className="relative mt-4 overflow-hidden rounded-2xl bg-ink">
-        <div id="besoia-qr-reader" className="min-h-[260px] [&_video]:!w-full [&_video]:object-cover" />
+        <video ref={videoRef} className="block h-[300px] w-full object-cover" playsInline muted />
         {cameraState === 'starting' && <div className="absolute inset-0 grid place-items-center text-cream/80">
           <div className="flex flex-col items-center gap-3 text-sm"><Spinner className="h-7 w-7" />Starting camera…</div>
         </div>}
@@ -102,7 +90,7 @@ export default function CameraScanner({ onScan, onError }) {
           </div>
         </div>}
       </div>
-      : <div id="besoia-file-reader" className="mt-4">
+      : <div className="mt-4">
         <label className={`flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center ${isDragging ? 'border-accent bg-accent-soft/50' : 'border-ink/20 bg-cream/50 hover:border-ink/35 hover:bg-cream'}`}
           onDragOver={(event) => { event.preventDefault(); setIsDragging(true); }} onDragLeave={() => setIsDragging(false)} onDrop={handleDrop}>
           {fileState.scanning
