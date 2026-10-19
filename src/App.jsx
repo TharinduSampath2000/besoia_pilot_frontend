@@ -5,6 +5,7 @@ import { Logo, Spinner } from './components/ui.jsx';
 import Home from './pages/Home.jsx';
 import Quiz from './pages/Quiz.jsx';
 import ScanOrShow from './pages/ScanOrShow.jsx';
+import Report from './pages/Report.jsx';
 
 function Layout({ children }) {
   const { pathname } = useLocation();
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/quiz" element={<RequireUser><Quiz /></RequireUser>} />
           <Route path="/match" element={<RequireUser needsAnswers><ScanOrShow /></RequireUser>} />
+          <Route path="/report" element={<Report />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

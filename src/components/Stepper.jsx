@@ -5,7 +5,8 @@ const steps = [
 ];
 
 export default function Stepper({ pathname }) {
-  const current = Math.max(0, steps.findIndex((step) => step.path === pathname));
+  const current = steps.findIndex((step) => step.path === pathname);
+  if (current === -1) return null;
 
   return <ol className="flex items-center gap-1.5 sm:gap-2" aria-label="Progress">
     {steps.map((step, index) => {

@@ -16,6 +16,7 @@ The backend needs to be running. With `dev:mobile`, open the network URL on the 
 - `/` name
 - `/quiz` 7 questions
 - `/match` show QR / scan, connections list
+- `/report` emails the pilot data to `REPORT_EMAIL`, no sign-in
 
 ## Notes
 
