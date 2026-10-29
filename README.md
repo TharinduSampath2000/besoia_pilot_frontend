@@ -22,4 +22,5 @@ The backend needs to be running. With `dev:mobile`, open the network URL on the 
 
 - Session is an httpOnly cookie set by the backend. Name, quiz status and connections are also kept in localStorage.
 - The QR screen fetches a new token every 30s and polls `/api/matches/recent` every 2.5s so user A sees the result.
+- English and Spanish. All UI text is in `src/i18n.jsx`. The language follows the phone's settings, can be switched with EN/ES in the header, and is remembered in localStorage. Question and icebreaker text comes from the API.
 - Deployed as a Render static site, see `render.yaml` in the backend repo.

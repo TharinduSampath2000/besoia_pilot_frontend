@@ -1,5 +1,6 @@
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { UserProvider, useUser } from './context/UserContext.jsx';
+import { I18nProvider, LanguageSwitch } from './i18n.jsx';
 import Stepper from './components/Stepper.jsx';
 import { Logo, Spinner } from './components/ui.jsx';
 import Home from './pages/Home.jsx';
@@ -13,7 +14,10 @@ function Layout({ children }) {
     <div className="mx-auto max-w-xl">
       <header className="flex items-center justify-between gap-4">
         <Link className="-m-2 flex items-center gap-2 rounded-lg p-2 font-display text-xl font-semibold tracking-tight text-ink no-underline" to="/"><Logo />Besoia</Link>
-        <Stepper pathname={pathname} />
+        <div className="flex items-center gap-3">
+          <Stepper pathname={pathname} />
+          <LanguageSwitch />
+        </div>
       </header>
       <main className="mt-7 sm:mt-14" key={pathname}>{children}</main>
     </div>
@@ -30,6 +34,7 @@ function RequireUser({ needsAnswers = false, children }) {
 
 export default function App() {
   return <BrowserRouter>
+    <I18nProvider>
     <UserProvider>
       <Layout>
         <Routes>
@@ -41,5 +46,6 @@ export default function App() {
         </Routes>
       </Layout>
     </UserProvider>
+    </I18nProvider>
   </BrowserRouter>;
 }

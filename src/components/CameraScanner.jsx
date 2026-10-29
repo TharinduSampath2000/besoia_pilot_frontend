@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import QrScanner from 'qr-scanner';
 import { Spinner } from './ui.jsx';
+import { useI18n } from '../i18n.jsx';
 
 export default function CameraScanner({ onScan, onError }) {
+  const { t } = useI18n();
   const [cameraState, setCameraState] = useState('starting');
   const videoRef = useRef(null);
   // Keep the latest callbacks without restarting the camera on every parent render.
@@ -29,9 +31,7 @@ export default function CameraScanner({ onScan, onError }) {
     }).catch((error) => {
       if (done) return;
       setCameraState('error');
-      callbacks.current.onError(error?.name === 'NotAllowedError' || String(error).includes('Permission')
-        ? 'Camera access was blocked. Allow it in your browser settings and reload the page.'
-        : "The camera couldn't start. Close other apps using the camera and try again.");
+      callbacks.current.onError({ code: error?.name === 'NotAllowedError' || String(error).includes('Permission') ? 'camera_blocked' : 'camera_failed' });
     });
     return () => {
       done = true;
@@ -42,11 +42,11 @@ export default function CameraScanner({ onScan, onError }) {
   return <div className="relative mt-5 overflow-hidden rounded-2xl bg-ink">
     <video ref={videoRef} className="block h-[300px] w-full object-cover" playsInline muted />
     {cameraState === 'starting' && <div className="absolute inset-0 grid place-items-center text-cream/80">
-      <div className="flex flex-col items-center gap-3 text-sm"><Spinner className="h-7 w-7" />Starting camera…</div>
+      <div className="flex flex-col items-center gap-3 text-sm"><Spinner className="h-7 w-7" />{t('scanner.starting')}</div>
     </div>}
-    {cameraState === 'live' && <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-xs font-medium text-cream/85 [text-shadow:0_1px_4px_rgba(27,38,44,0.6)]">Point at their QR code</p>}
+    {cameraState === 'live' && <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-xs font-medium text-cream/85 [text-shadow:0_1px_4px_rgba(27,38,44,0.6)]">{t('scanner.point')}</p>}
     {cameraState === 'error' && <div className="absolute inset-0 grid place-items-center p-6 text-center text-sm text-cream/80">
-      <p>Camera unavailable.</p>
+      <p>{t('scanner.unavailable')}</p>
     </div>}
   </div>;
 }

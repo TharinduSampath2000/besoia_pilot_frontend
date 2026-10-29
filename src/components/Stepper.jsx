@@ -1,14 +1,17 @@
+import { useI18n } from '../i18n.jsx';
+
 const steps = [
-  { path: '/', label: 'You' },
-  { path: '/quiz', label: 'Questions' },
-  { path: '/match', label: 'Connect' }
+  { path: '/', label: 'stepper.you' },
+  { path: '/quiz', label: 'stepper.questions' },
+  { path: '/match', label: 'stepper.connect' }
 ];
 
 export default function Stepper({ pathname }) {
+  const { t } = useI18n();
   const current = steps.findIndex((step) => step.path === pathname);
   if (current === -1) return null;
 
-  return <ol className="flex items-center gap-1.5 sm:gap-2" aria-label="Progress">
+  return <ol className="flex items-center gap-1.5 sm:gap-2" aria-label={t('stepper.progress')}>
     {steps.map((step, index) => {
       const done = index < current;
       const active = index === current;
@@ -19,8 +22,8 @@ export default function Stepper({ pathname }) {
             ? <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.58l7.3-7.3a1 1 0 0 1 1.4 0Z" clipRule="evenodd" /></svg>
             : index + 1}
         </span>
-        <span className={`hidden text-xs font-semibold sm:inline ${active ? 'text-ink' : 'text-ink/45'}`}>{step.label}</span>
-        <span className="sr-only">{done ? '(completed)' : ''}</span>
+        <span className={`hidden text-xs font-semibold sm:inline ${active ? 'text-ink' : 'text-ink/45'}`}>{t(step.label)}</span>
+        <span className="sr-only">{done ? t('stepper.completed') : ''}</span>
       </li>;
     })}
   </ol>;

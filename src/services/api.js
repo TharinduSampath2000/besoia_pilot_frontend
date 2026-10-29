@@ -1,7 +1,8 @@
 export class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, code) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -14,12 +15,11 @@ async function request(path, options = {}) {
       ...options
     });
   } catch {
-    throw new ApiError("Can't reach Besoia right now. Check your connection and try again.", 0);
+    throw new ApiError("Can't reach Besoia right now.", 0, 'network');
   }
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const fallback = response.status >= 500 ? 'Something went wrong on our side. Please try again.' : 'Request failed';
-    throw new ApiError(body.error || fallback, response.status);
+    throw new ApiError(body.error || 'Request failed', response.status, body.code || (response.status >= 500 ? 'server' : 'request_failed'));
   }
   return body;
 }
